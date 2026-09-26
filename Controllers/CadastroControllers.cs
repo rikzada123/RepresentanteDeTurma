@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Turma.Models;
+using Turma.Repositories;
 
 namespace Turma.Controllers
 {
@@ -7,43 +8,40 @@ namespace Turma.Controllers
     [Route("[controller]")]
     public class CadastroController : ControllerBase
     {
-        private static List<DadosCadastro> dadosCadastrosList = new List<DadosCadastro>();
-        private static List<Voto> dadosVotoList = new List<Voto>();
+        private readonly ICadastroRepository _repository;
+
+        public CadastroController(ICadastroRepository repository)
+        {
+            _repository = repository;
+        }
+
         [HttpPost]
         [Route("Cadastrar")]
         public IActionResult Cadastrar(DadosCadastro dados)
         {
-            var alunoExiste = dadosCadastrosList.Where(a => a.numeroCandidado == dados.numeroCandidado).FirstOrDefault();
+            bool sucesso = _repository.CadastrarCandidato(dados);
 
-            if (alunoExiste is not null)
+            if (!sucesso)
                 return BadRequest($"Candidato numero {dados.numeroCandidado} já cadastrado.");
 
-            else
-            {
-                dadosCadastrosList.Add(dados);
-
-                return Ok($"Aluno {dados.nome} cadastrado!");
-            }
+            return Ok($"Aluno {dados.nome} cadastrado!");
         }
 
         [HttpGet]
         [Route("ListarTodos")]
         public IActionResult ListarTodos()
         {
-            return Ok(dadosCadastrosList);
+            return Ok(_repository.ListarCandidatos());
         }
 
         [HttpPost]
         [Route("Votar")]
         public IActionResult Votar(Voto dadosVoto)
         {
-            
-            var votoExiste = dadosVotoList.Where(a => a.ra == dadosVoto.ra).FirstOrDefault();
+            bool sucesso = _repository.Votar(dadosVoto);
 
-            if (votoExiste is not null)
+            if (!sucesso)
                 return BadRequest($"Voto do aluno com RA {dadosVoto.ra} já existe.");
-
-            dadosVotoList.Add(dadosVoto);
 
             return Ok($"Voto do aluno com o RA {dadosVoto.ra} confirmado.");
         }
@@ -52,8 +50,7 @@ namespace Turma.Controllers
         [Route("ConsultarVotosPorCandidato/{numeroCandidato}")]
         public IActionResult ConsultarVotosPorCandidato(int numeroCandidato)
         {
-            var votosDoCandidato = dadosVotoList.Where(a => a.numeroCanditado == numeroCandidato).ToList();
-
+            var votosDoCandidato = _repository.ConsultarVotosPorCandidato(numeroCandidato);
             return Ok(votosDoCandidato);
         }
     }
